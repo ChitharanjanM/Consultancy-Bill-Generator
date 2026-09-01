@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Structural Engineering Fee Bill Generator</title>
+<style>
+  :root{
+    --ink:#1c2b39;
+    --muted:#5b6b7a;
+    --line:#c7d0d6;
+    --accent:#0f4c5c;
+    --paper:#ffffff;
+    --bg:#eef1f3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Times New Roman',Times,serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding:24px;
+  }
+  .app{
+    max-width:1100px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:24px;
+  }
+  @media (max-width:860px){
+    .app{grid-template-columns:1fr;}
+  }
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px 22px;
+    font-family:'Times New Roman',Times,serif;
+  }
+  .panel h2{
+    font-size:15px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--accent);
+    margin:0 0 16px 0;
+    border-bottom:1px solid var(--line);
+    padding-bottom:8px;
+  }
+  label{
+    display:block;
+    font-size:12.5px;
+    color:var(--muted);
+    margin:14px 0 4px;
+    font-weight:600;
+  }
+  input{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    font-size:14px;
+    font-family:'Times New Roman',Times,serif;
+    color:var(--ink);
+  }
+  input:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 2px rgba(15,76,92,0.15);
+  }
+  .hint{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .btns{
+    margin-top:20px;
+    display:flex;
+    gap:10px;
+  }
+  button{
+    flex:1;
+    padding:10px 12px;
+    border:none;
+    border-radius:6px;
+    font-family:'Times New Roman',Times,serif;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  #printBtn{
+    background:var(--accent);
+    color:#fff;
+  }
+  #printBtn:hover{background:#0c3d49;}
+  #resetBtn{
+    background:#f0f2f4;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  #resetBtn:hover{background:#e5e8eb;}
+
+  /* ---- Bill Preview ---- */
+  .bill-wrap{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:40px 48px;
+  }
+  .letterhead{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  .letterhead .name{
+    font-size:22px;
+    font-weight:bold;
+    letter-spacing:.02em;
+  }
+  .letterhead .qual{
+    font-style:italic;
+    font-size:13px;
+    margin-top:2px;
+  }
+  .letterhead .title{
+    font-size:13.5px;
+    margin-top:6px;
+  }
+  .letterhead .addr{
+    font-size:13px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .rule{
+    border:none;
+    border-top:2px solid var(--ink);
+    margin:16px 0 20px;
+  }
+  .bill-title{
+    text-align:center;
+    font-weight:bold;
+    font-size:16px;
+    text-decoration:underline;
+    letter-spacing:.03em;
+    margin-bottom:20px;
+  }
+  table.meta{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:16px;
+  }
+  table.meta td{
+    border:1px solid var(--ink);
+    padding:8px 10px;
+    font-size:13.5px;
+  }
+  table.meta td.label{
+    font-weight:bold;
+    width:180px;
+    background:#f7f8f9;
+  }
+  table.calc{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:0;
+  }
+  table.calc th, table.calc td{
+    border:1px solid var(--ink);
+    padding:9px 10px;
+    font-size:13.5px;
+    text-align:center;
+  }
+  table.calc th{
+    background:#f7f8f9;
+    font-weight:bold;
+  }
+  table.summary{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:16px;
+  }
+  table.summary td{
+    border:1px solid var(--ink);
+    padding:9px 10px;
+    font-size:13.5px;
+  }
+  table.summary td.label{
+    font-weight:bold;
+    width:220px;
+    background:#f7f8f9;
+  }
+  table.summary tr.net td{
+    font-weight:bold;
+    font-size:15px;
+    background:#eef6f4;
+  }
+  .footer-note{
+    margin-top:34px;
+    font-size:12px;
+    color:var(--muted);
+    text-align:right;
+  }
+
+  @media print{
+    body{background:#fff;padding:0;}
+    .panel{display:none;}
+    .app{display:block;}
+    .bill-wrap{border:none;padding:20px 30px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- INPUT PANEL -->
+  <div class="panel">
+    <h2>Bill Details</h2>
+
+    <label for="client">Client / Project</label>
+    <input type="text" id="client" placeholder="e.g. Restaurant building at Neria" value="Restaurant building at Neria">
+
+    <label for="plinth">Plinth Area (sqft)</label>
+    <input type="number" id="plinth" placeholder="e.g. 2051" value="2051" min="0" step="any">
+
+    <label for="slabs">No. of Slabs</label>
+    <input type="number" id="slabs" placeholder="e.g. 2" value="2" min="0" step="1">
+
+    <label for="rate">Rate per sqft (₹)</label>
+    <input type="number" id="rate" placeholder="e.g. 4.50" value="4.50" min="0" step="any">
+
+    <label for="dateField">Date</label>
+    <input type="date" id="dateField">
+    <div class="hint">Defaults to today's date (bill generation date). Editable if needed.</div>
+
+    <label for="roundOff">Round Off (₹)</label>
+    <input type="number" id="roundOff" value="0" step="any">
+    <div class="hint">Net Amount Payable = Amount − Round Off.</div>
+
+    <div class="btns">
+      <button id="printBtn" onclick="window.print()">Print / Save PDF</button>
+      <button id="resetBtn" onclick="resetForm()">Reset</button>
+    </div>
+  </div>
+
+  <!-- BILL PREVIEW -->
+  <div class="bill-wrap">
+    <div class="letterhead">
+      <div class="name">CHITHARANJAN M</div>
+      <div class="qual">B.E. (CIVIL), M.TECH (STR.)</div>
+      <div class="title">Consulting Civil and Structural Engineer</div>
+      <div class="addr">Belthangady, Mangaluru</div>
+      <div class="addr">Ph: +91 - 9686423748</div>
+    </div>
+    <hr class="rule">
+
+    <div class="bill-title">STRUCTURAL ENGINEERING FEE BILL</div>
+
+    <table class="meta">
+      <tr>
+        <td class="label">Client / Project</td>
+        <td id="outClient">Restaurant building at Neria</td>
+      </tr>
+      <tr>
+        <td class="label">Date</td>
+        <td id="outDate">—</td>
+      </tr>
+    </table>
+
+    <table class="calc">
+      <tr>
+        <th>Description</th>
+        <th>Plinth Area (sqft)</th>
+        <th>No. of Slabs</th>
+        <th>Total Area (sqft)</th>
+      </tr>
+      <tr>
+        <td>Structural Design &amp; Detailing</td>
+        <td id="outPlinth">0</td>
+        <td id="outSlabs">0</td>
+        <td id="outTotalArea">0</td>
+      </tr>
+    </table>
+
+    <table class="summary">
+      <tr>
+        <td class="label">Total Area x Rate</td>
+        <td id="outAreaRate">—</td>
+      </tr>
+      <tr>
+        <td class="label">Amount</td>
+        <td id="outAmount">₹ 0.00</td>
+      </tr>
+      <tr>
+        <td class="label">Round Off</td>
+        <td id="outRoundOff">₹ 0.00</td>
+      </tr>
+      <tr class="net">
+        <td class="label">NET AMOUNT PAYABLE</td>
+        <td id="outNet">₹ 0.00</td>
+      </tr>
+    </table>
+
+    <div class="footer-note">Signature: ______________________</div>
+  </div>
+
+</div>
+
+<script>
+function formatINR(num){
+  const isNeg = num < 0;
+  const abs = Math.abs(num);
+  const parts = abs.toFixed(2).split(".");
+  let intPart = parts[0];
+  let lastThree = intPart.substring(intPart.length - 3);
+  let otherNumbers = intPart.substring(0, intPart.length - 3);
+  if (otherNumbers !== '') lastThree = ',' + lastThree;
+  const formattedInt = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
+  const result = "₹ " + formattedInt + "." + parts[1];
+  return isNeg ? "− " + result.replace("₹ ", "") && ("− ₹ " + formattedInt + "." + parts[1]) : result;
+}
+
+function setTodayDate(){
+  const dateInput = document.getElementById('dateField');
+  if(!dateInput.value){
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth()+1).padStart(2,'0');
+    const dd = String(today.getDate()).padStart(2,'0');
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+  }
+}
+
+function formatDisplayDate(isoStr){
+  if(!isoStr) return '—';
+  const [y,m,d] = isoStr.split('-');
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${parseInt(d,10)} ${months[parseInt(m,10)-1]} ${y}`;
+}
+
+function recalc(){
+  const client = document.getElementById('client').value || '—';
+  const plinth = parseFloat(document.getElementById('plinth').value) || 0;
+  const slabs = parseFloat(document.getElementById('slabs').value) || 0;
+  const rate = parseFloat(document.getElementById('rate').value) || 0;
+  const dateVal = document.getElementById('dateField').value;
+
+  const totalArea = plinth * slabs;
+  const amount = totalArea * rate;
+
+  const roundOff = parseFloat(document.getElementById('roundOff').value) || 0;
+  const netAmount = amount - roundOff;
+
+  document.getElementById('outClient').textContent = client;
+  document.getElementById('outDate').textContent = formatDisplayDate(dateVal);
+  document.getElementById('outPlinth').textContent = plinth.toLocaleString('en-IN');
+  document.getElementById('outSlabs').textContent = slabs.toLocaleString('en-IN');
+  document.getElementById('outTotalArea').textContent = totalArea.toLocaleString('en-IN');
+  document.getElementById('outAreaRate').textContent =
+    `${totalArea.toLocaleString('en-IN')} sqft × ₹${rate.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})} / sqft`;
+  document.getElementById('outAmount').textContent = rupeeFormat(amount);
+  document.getElementById('outRoundOff').textContent = roundOff === 0 ? rupeeFormat(0) : ("− " + rupeeFormat(Math.abs(roundOff)));
+  document.getElementById('outNet').textContent = rupeeFormat(netAmount);
+}
+
+function rupeeFormat(num){
+  const fixed = Number(num).toFixed(2);
+  const [intPart, decPart] = fixed.split(".");
+  const lastThree = intPart.slice(-3);
+  const other = intPart.slice(0, -3);
+  const formattedInt = (other ? other.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," : "") + lastThree;
+  return `₹ ${formattedInt}.${decPart}`;
+}
+
+function resetForm(){
+  document.getElementById('client').value = '';
+  document.getElementById('plinth').value = '';
+  document.getElementById('slabs').value = '';
+  document.getElementById('rate').value = '';
+  document.getElementById('roundOff').value = 0;
+  document.getElementById('dateField').value = '';
+  setTodayDate();
+  recalc();
+}
+
+['client','plinth','slabs','rate','roundOff','dateField'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', recalc);
+});
+
+setTodayDate();
+recalc();
+</script>
+
+</body>
+</html>
